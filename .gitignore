@@ -1,0 +1,25 @@
+# Build output
+**/bin/
+**/obj/
+**/wwwroot/
+/dist/
+
+# Node
+**/node_modules/
+**/.vite/
+
+# Credenziali — usare appsettings.template.json
+**/appsettings.json
+
+# Logs IIS
+**/logs/
+
+# VS / Rider
+.vs/
+*.user
+*.suo
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
