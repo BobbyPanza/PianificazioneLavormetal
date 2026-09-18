@@ -8,6 +8,10 @@
 
   <ItemGroup>
     <None Include="..\Scripts\**" CopyToPublishDirectory="PreserveNewest" LinkBase="Scripts" />
+    <!-- appsettings.json e' la configurazione locale di sviluppo (connection string con
+         credenziali): fuori dal pacchetto di pubblicazione, sul server si parte da
+         appsettings.template.json come descritto nel README. -->
+    <Content Update="appsettings.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
   <ItemGroup>

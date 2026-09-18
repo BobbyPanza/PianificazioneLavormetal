@@ -5,7 +5,8 @@ con grafico di saturazione (carico vs disponibilità oraria) e possibilità di s
 di inizio prevista delle lavorazioni (drag&drop, selezione multipla, calendario).
 
 Il carico considera tutte le lavorazioni (`A_LAV`) con stato `LASTO <= 43` (Rilasciata /
-Pianificata / Aperta), raggruppate per reparto tramite `A_FAS.X_Suffisso` (join su `FACOD`).
+Pianificata / Aperta), raggruppate per reparto tramite `A_FAS.X_Suffisso` (join su `FACOD`);
+i nomi dei reparti mostrati nei filtri arrivano da `X_REP_SUFFISSO.X_Descrizione`.
 Per le lavorazioni di taglio laser collegate a un piano di lavoro (`L_ODLA`/`S_ODL`/`A_NES`),
 la data e i secondi previsti vengono ripartiti proporzionalmente tra le bolle collegate — vedi
 i commenti in `Scripts/XVIEW_CARICO_LAV.sql`.
@@ -29,10 +30,17 @@ Nella cartella `Scripts\` esegui in SSMS, **in questo ordine**, sul database del
 2. `XVIEW_CARICO_LAV.sql` — crea/aggiorna la vista principale `XVIEW_CARICO_LAV`.
 3. `XVIEW_CARICO_COMMESSA.sql` — crea la vista per commessa/cliente/scadenza (usata solo nel
    dettaglio giornaliero, tenuta separata per non appesantire l'aggregazione del grafico).
-4. `Install_X_REP_SUFFISSO.sql` — crea e popola `X_REP_SUFFISSO`, la mappatura tra i 6 reparti
-   principali (`A_REP.RECOD` = 01-05, esclusa Logistica) e i suffissi (`T`/`Z`/`P`/`S`/`A`).
-   **Verifica il riepilogo stampato dallo script**: se i codici RECOD del cliente sono diversi
-   da `01`..`05`, aggiorna i valori nella sezione `MERGE` dello script prima di eseguirlo.
+4. `Install_X_REP_SUFFISSO.sql` — crea e popola `X_REP_SUFFISSO`, l'anagrafica dei suffissi di
+   reparto: per ogni `A_FAS.X_Suffisso` la descrizione mostrata nei filtri/tab della
+   pianificazione (`X_Descrizione`) e, se esiste, il reparto `A_REP.RECOD` corrispondente —
+   quest'ultimo serve solo alla disponibilità oraria. `RECOD` può essere `NULL`: i suffissi
+   senza reparto (lavorazioni esterne, fasi non assegnate) compaiono comunque nei filtri, ma
+   senza linea di disponibilità nel grafico.
+   **Verifica i due riepiloghi stampati dallo script**: se i codici RECOD del cliente sono
+   diversi da `01`..`05`, o se il secondo elenco mostra suffissi usati in `A_FAS` ma non
+   mappati (comparirebbero nei filtri con la sola sigla), aggiorna la sezione `MERGE` dello
+   script e rieseguilo. Lo script è la fonte di verità: a ogni esecuzione riallinea le
+   descrizioni, quindi le modifiche fatte a mano sulla tabella vanno perse.
 
 **NON eseguire** `OneShot_AllineaDateScadute.sql` per ora — è lo script una tantum che sposta
 a oggi tutte le lavorazioni/nesting con data prevista scaduta (`A_LAV.LADIP` / `A_NES.DTEXP`).
@@ -78,7 +86,9 @@ sull'application pool **Versione .NET CLR → Nessun codice gestito**.
   Assemblaggio, Non assegnato) devono essere popolati.
 - Seleziona un reparto in vista Giorno: deve comparire il grafico con eventualmente la linea
   tratteggiata di disponibilità (se `X_REP_SUFFISSO`/`L_REOP` sono popolati correttamente per
-  quel cliente) e la griglia drag&drop sotto.
+  quel cliente) e la griglia drag&drop sotto. Nell'header di ogni colonna giorno il monte ore
+  compare come `ore caricate / ore disponibili`: se manca la seconda cifra, quel reparto non ha
+  operatori in `L_REOP`.
 - Prova a spostare una card e verifica in `X_CARICO_LOG` che la scrittura sia stata loggata.
 
 ---
@@ -110,8 +120,16 @@ modificabile); le altre vengono ignorate silenziosamente.
 
 ## Report stampabile
 
-Il pulsante 🖨 su ogni colonna giorno apre un report stampabile (descrizione, ore, commessa,
-cliente, scadenza, esterna) per quel reparto/giorno.
+Il pulsante 🖨 su ogni colonna giorno apre un report stampabile (descrizione, articolo, ore,
+commessa, cliente, scadenza, esterna) per quel reparto/giorno.
+
+## Codice articolo
+
+Il codice articolo (`A_LOT.PACOD`, con descrizione `PADSC` nel tooltip) viene mostrato sulla card
+e nel report. Per una lavorazione singola è l'articolo del suo lotto; per una bolla/gruppo viene
+mostrato **solo se tutte le lavorazioni della bolla producono lo stesso articolo** (un nesting può
+contenere articoli diversi, in quel caso il campo resta vuoto come già accade per commessa e
+cliente).
 
 ## Note tecniche
 
@@ -122,6 +140,10 @@ cliente, scadenza, esterna) per quel reparto/giorno.
   da quelle effettivamente in `L_ODLA` per la stessa lavorazione.
 - Il badge "NST" compare solo se `L_ODLA.IDNES` è valorizzato per la bolla (nesting
   effettivamente assegnato), non se esiste semplicemente un `A_NES` collegato all'OLCOD.
+- Il report stampabile è un overlay in portale su `document.body`, **non** un `<dialog>`
+  modale: gli elementi nel top layer del browser non vengono impaginati in stampa (Chrome
+  stampa solo la prima pagina, tagliata). In `@media print` si nasconde `#root` e si stampa il
+  solo contenuto del portale.
 - La disponibilità oraria per reparto si basa sugli **operatori** (`L_REOP`/`A_OPR.IDNUM` →
   `dbo.ComputeCalendarTime`), non sulle macchine: verificare che il cliente abbia operatori
   assegnati ai 6 reparti principali in `L_REOP` (i codici granulari `L_REMA` non sono usati per

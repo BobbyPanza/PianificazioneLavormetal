@@ -14,7 +14,13 @@
 -- NB: NON si usa A_LAV.OLCOD (colonna diretta, ridondante) perche' riflette solo la
 -- prima/ultima bolla assegnata e non la ripartizione reale sulle bolle successive.
 
-CREATE OR ALTER VIEW XVIEW_CARICO_LAV AS
+-- DROP + CREATE invece di CREATE OR ALTER: il server del cliente e' SQL Server 2016 RTM,
+-- CREATE OR ALTER e' disponibile solo da 2016 SP1 in poi.
+IF OBJECT_ID('XVIEW_CARICO_LAV', 'V') IS NOT NULL
+    DROP VIEW XVIEW_CARICO_LAV;
+GO
+
+CREATE VIEW XVIEW_CARICO_LAV AS
 WITH LavAttive AS (
     SELECT
         L.IDLAV, L.CONUM, L.LOCOD, L.IDFAS, L.FACOD,

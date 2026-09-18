@@ -36,6 +36,8 @@ public class UnitaPianificabileDto
     public int NumLavorazioni { get; set; }
     public string? CommessaCod { get; set; }
     public string? ClienteDsc { get; set; }
+    public string? Articolo { get; set; }      // A_LOT.PACOD (solo se uniforme nel gruppo)
+    public string? ArticoloDsc { get; set; }   // A_LOT.PADSC
     public DateTime? Scadenza { get; set; }
     public string? Esterna { get; set; }       // 'E' | 'I' (solo se uniforme nel gruppo)
     public string? Modificabile { get; set; }  // 'Y' | 'N' (solo se uniforme nel gruppo)

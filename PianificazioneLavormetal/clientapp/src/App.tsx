@@ -83,6 +83,19 @@ export default function App() {
     return arr;
   }, [dal, al]);
 
+  // Monte ore per giorno del reparto selezionato: in vista giorno /capacita e' gia' aggregata
+  // per singolo giorno, quindi la stessa risposta che alimenta il grafico serve anche gli header
+  // delle colonne (nessuna chiamata aggiuntiva).
+  const capacitaPerGiorno = useMemo(() => {
+    const m = new Map<string, number>();
+    if (vista !== 'giorno') return m;
+    for (const c of capacita) {
+      const iso = c.periodo.slice(0, 10);
+      m.set(iso, (m.get(iso) ?? 0) + c.secondiDisponibili);
+    }
+    return m;
+  }, [capacita, vista]);
+
   const perChiave = useMemo(() => {
     const m = new Map<string, UnitaPianificabile>();
     for (const u of dettaglio) m.set(chiaveUnita(u), u);
@@ -219,6 +232,7 @@ export default function App() {
             <GriglioGiorno
               giorni={giorni}
               unita={dettaglio}
+              capacitaPerGiorno={capacitaPerGiorno}
               selezione={selezione}
               onToggleSelezione={toggleSelezione}
               onStampa={setGiornoReport}

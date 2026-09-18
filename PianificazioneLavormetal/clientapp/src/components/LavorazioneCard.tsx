@@ -42,7 +42,7 @@ export default function LavorazioneCard({ unita, selezionata, onToggleSelezione 
         onToggleSelezione(chiave);
       }}
       title={unita.commessaCod
-        ? `Commessa ${unita.commessaCod}${unita.clienteDsc ? ` — ${unita.clienteDsc}` : ''}${unita.scadenza ? ` — scadenza ${formatDataBreve(unita.scadenza)}` : ''}`
+        ? `Commessa ${unita.commessaCod}${unita.clienteDsc ? ` — ${unita.clienteDsc}` : ''}${unita.articolo ? `\nArticolo ${unita.articolo}${unita.articoloDsc ? ` — ${unita.articoloDsc}` : ''}` : ''}${unita.scadenza ? `\nScadenza ${formatDataBreve(unita.scadenza)}` : ''}`
         : undefined}
     >
       <div className="carico-card-badge-riga">
@@ -51,6 +51,11 @@ export default function LavorazioneCard({ unita, selezionata, onToggleSelezione 
       </div>
       <div className="carico-card-desc">{titolo}</div>
       <div className="carico-card-sotto">{sottotitolo}</div>
+      {unita.articolo && (
+        <div className="carico-card-articolo" title={unita.articoloDsc ?? unita.articolo}>
+          🔩 {unita.articolo}
+        </div>
+      )}
       <div className="carico-card-meta">
         {formatOre(unita.secondiPrevisti)}
         {unita.numLavorazioni > 1 ? ` · ${unita.numLavorazioni} lav.` : ''}

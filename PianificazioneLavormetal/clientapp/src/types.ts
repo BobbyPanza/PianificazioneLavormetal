@@ -34,6 +34,8 @@ export interface UnitaPianificabile {
   numLavorazioni: number;
   commessaCod: string | null;
   clienteDsc: string | null;
+  articolo: string | null;
+  articoloDsc: string | null;
   scadenza: string | null; // ISO date
   esterna: 'E' | 'I' | null;
   modificabile: 'Y' | 'N' | null;

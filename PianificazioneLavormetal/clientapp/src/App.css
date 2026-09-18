@@ -220,6 +220,12 @@ body {
   color: #6b7280;
 }
 
+/* Ore caricate oltre il monte ore del reparto per quel giorno */
+.giorno-colonna-sforo {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 .btn-stampa-giorno {
   position: absolute;
   top: 6px;
@@ -313,6 +319,15 @@ body {
   text-overflow: ellipsis;
 }
 
+.carico-card-articolo {
+  color: #111827;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .carico-card-meta {
   color: #6b7280;
 }
@@ -358,8 +373,19 @@ body {
   gap: 8px;
 }
 
-.report-dialog {
-  border: none;
+.report-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.report-pannello {
+  background: white;
   border-radius: 12px;
   padding: 24px;
   width: 90vw;
@@ -367,10 +393,6 @@ body {
   max-height: 85vh;
   overflow: auto;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-}
-
-.report-dialog::backdrop {
-  background: rgba(0,0,0,0.4);
 }
 
 .report-azioni-no-stampa {
@@ -414,19 +436,51 @@ body {
 }
 
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
   }
-  .report-stampa-contenuto, .report-stampa-contenuto * {
-    visibility: visible;
+
+  html, body {
+    background: white;
+    height: auto;
   }
-  .report-stampa-contenuto {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+
+  /* L'applicazione resta fuori dalla stampa: il report e' in portale su document.body,
+     quindi nascondere #root basta a evitare le pagine bianche generate dal layout della
+     griglia giorni (visibility:hidden non serviva: occupava comunque spazio in pagina). */
+  #root {
+    display: none !important;
   }
+
+  .report-overlay {
+    position: static;
+    display: block;
+    background: none;
+    padding: 0;
+    overflow: visible;
+  }
+
+  .report-pannello {
+    width: auto;
+    max-width: none;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
   .report-azioni-no-stampa {
-    display: none;
+    display: none !important;
+  }
+
+  /* Intestazione ripetuta su ogni pagina e righe mai spezzate a meta'. */
+  .report-tabella thead {
+    display: table-header-group;
+  }
+
+  .report-tabella tr {
+    break-inside: avoid;
   }
 }

@@ -36,31 +36,28 @@ public class CaricoRepository(IConfiguration config)
     private const string SuffissoExpr =
         "ISNULL(NULLIF(RTRIM(CAST(ISNULL(X_Suffisso, '') AS VARCHAR(20))), ''), '(N/D)')";
 
-    // Nomi descrittivi dei reparti (confermati dall'utente), usati ovunque al posto della sigla.
-    private static string DescrizioneExpr(string suffissoExpr) => $@"
-        CASE {suffissoExpr}
-            WHEN 'T' THEN 'Taglio'
-            WHEN 'Z' THEN 'Punzonatura'
-            WHEN 'P' THEN 'Piega e Pannellatura'
-            WHEN 'S' THEN 'Saldatura'
-            WHEN 'A' THEN 'Assemblaggio'
-            WHEN 'M' THEN 'Lavorazioni Meccaniche'
-            WHEN 'V' THEN 'Trattamenti/Verniciatura'
-            WHEN '(N/D)' THEN 'Non assegnato'
-            ELSE {suffissoExpr}
-        END";
-
     public async Task<IEnumerable<RepartoDto>> GetRepartiAsync()
     {
         using var conn = CreateConnection();
+        // L'etichetta mostrata nei filtri/tab e' X_REP_SUFFISSO.X_Descrizione (anagrafica dei
+        // suffissi, vedi Scripts/Install_X_REP_SUFFISSO.sql): un suffisso non ancora mappato
+        // resta visibile nei filtri, ma con la sola sigla al posto del nome.
+        // L'aggregazione e' in subquery perche' sia la vista sia X_REP_SUFFISSO hanno una
+        // colonna X_Suffisso e SuffissoExpr la referenzia senza qualificatore.
         var reparti = (await conn.QueryAsync<RepartoDto>($@"
             SELECT
-                {SuffissoExpr} AS Suffisso,
-                {DescrizioneExpr(SuffissoExpr)} AS Descrizione,
-                COUNT(DISTINCT IDLAV) AS NumLavorazioni
-            FROM XVIEW_CARICO_LAV
-            GROUP BY {SuffissoExpr}
-            ORDER BY Suffisso")).ToList();
+                S.Suffisso,
+                ISNULL(X.X_Descrizione, S.Suffisso) AS Descrizione,
+                S.NumLavorazioni
+            FROM (
+                SELECT
+                    {SuffissoExpr} AS Suffisso,
+                    COUNT(DISTINCT IDLAV) AS NumLavorazioni
+                FROM XVIEW_CARICO_LAV
+                GROUP BY {SuffissoExpr}
+            ) S
+            LEFT JOIN X_REP_SUFFISSO X ON X.X_Suffisso = S.Suffisso
+            ORDER BY S.Suffisso")).ToList();
 
         var nomi = await conn.QueryAsync<NomeRepartoRow>(@"
             SELECT X.X_Suffisso AS Suffisso, R.REDSC AS Nome
@@ -157,6 +154,11 @@ public class CaricoRepository(IConfiguration config)
                 CASE WHEN COUNT(DISTINCT V.CONUM) = 1 THEN MAX(C.COCOD) END AS CommessaCod,
                 CASE WHEN COUNT(DISTINCT V.CONUM) = 1 THEN MAX(C.ClienteDsc) END AS ClienteDsc,
                 CASE WHEN COUNT(DISTINCT V.CONUM) = 1 THEN MIN(C.Scadenza) END AS Scadenza,
+                -- Articolo: per una lavorazione singola e' quello del suo lotto; per una bolla
+                -- viene mostrato solo se tutte le lavorazioni producono lo stesso articolo
+                -- (una bolla di nesting puo' contenere piu' articoli diversi).
+                CASE WHEN COUNT(DISTINCT C.Articolo) = 1 THEN MAX(C.Articolo) END AS Articolo,
+                CASE WHEN COUNT(DISTINCT C.Articolo) = 1 THEN MAX(C.ArticoloDsc) END AS ArticoloDsc,
                 -- Esterna/modificabile mostrati solo se uniformi in tutta la bolla.
                 CASE WHEN COUNT(DISTINCT V.FAEXE) = 1 THEN MAX(V.FAEXE) END AS Esterna,
                 CASE WHEN COUNT(DISTINCT V.FAEXM) = 1 THEN MAX(V.FAEXM) END AS Modificabile,
